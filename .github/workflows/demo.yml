@@ -63,38 +63,8 @@ jobs:
             -var "aws_secret_key=${AWS_SECRET_ACCESS_KEY}"
         continue-on-error: true
 
-      - name: Comment PR with Plan
-        id: comment
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const plan = process.env.PLAN;
-            const output = `#### Terraform Format 🖌: \`${{ steps.format.outcome }}\`
-#### Terraform Init ⚙️: \`${{ steps.init.outcome }}\`
-#### Terraform Validate 🤖: \`${{ steps.validate.outcome }}\`
-#### Terraform Plan 📖: \`${{ steps.plan.outcome }}\`
 
-<details><summary>Show Plan</summary>
-
-\`\`\`hcl
-${plan}
-\`\`\`
-
-</details>
-
-*Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
-
+          
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
