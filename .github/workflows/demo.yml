@@ -20,7 +20,7 @@ jobs:
         id: checkov
         uses: bridgecrewio/checkov-action@v12.1347.0
         with:
-          directory: ${{ env.WORKING_DIRECTORY }}
+          directory: .
 
   deploy-aws-infra-terraform:
     name: Deploy AWS Infrastructure with Terraform
