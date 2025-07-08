@@ -61,10 +61,7 @@ jobs:
         run: terraform plan -input=false \
             -var "aws_access_key=${AWS_ACCESS_KEY_ID}" \
             -var "aws_secret_key=${AWS_SECRET_ACCESS_KEY}"
-        continue-on-error: true
 
-
-          
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
