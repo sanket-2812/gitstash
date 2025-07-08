@@ -1,11 +1,18 @@
-
-provider "aws" {
-  access_key = ${{ secrets.ACCESSKEY }}
-
-  secret_key = ${{ secrets.SECRETACCESSKEY }}
-  region = "eu-north-1"
+variable "aws_access_key" {
+  type        = string
+  description = "AWS access key"
 }
 
+variable "aws_secret_key" {
+  type        = string
+  description = "AWS secret key"
+}
+
+provider "aws" {
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+  region     = "eu-north-1"
+}
 
 data "aws_ami" "ubuntu" {
   most_recent = true
