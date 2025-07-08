@@ -20,7 +20,7 @@ jobs:
         id: checkov
         uses: bridgecrewio/checkov-action@v12.1347.0
         with:
-          directory:  .
+          directory: .
 
   deploy-aws-infra-terraform:
     name: Deploy AWS Infrastructure with Terraform
@@ -65,20 +65,20 @@ jobs:
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
-          github-token: ${{ secrets.TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `#### Terraform Format 🖌: \`${{ steps.format.outcome }}\`
-#### Terraform Init ⚙️: \`${{ steps.init.outcome }}\`
-#### Terraform Validate 🤖: \`${{ steps.validate.outcome }}\`
-#### Terraform Plan 📖: \`${{ steps.plan.outcome }}\`
+            #### Terraform Init ⚙️: \`${{ steps.init.outcome }}\`
+            #### Terraform Validate 🤖: \`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖: \`${{ steps.plan.outcome }}\`
 
-<details><summary>Show Plan</summary>
+            <details><summary>Show Plan</summary>
 
-\`\`\`${process.env.PLAN}\`\`\`
+            \`\`\`${process.env.PLAN}\`\`\`
 
-</details>
+            </details>
 
-*Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
