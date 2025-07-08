@@ -1,4 +1,4 @@
-name: 'Terraform'
+name: 'Terraform CI/CD'
 
 on:
   push:
@@ -9,88 +9,84 @@ permissions:
   contents: read
 
 jobs:
-  
   scan-terraform-config:
     runs-on: ubuntu-latest
-    name: Scan Terraform with Checov
+    name: Scan Terraform with Checkov
     steps:
       - name: Checkout repo
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
+
       - name: Checkov GitHub Action
         id: checkov
         uses: bridgecrewio/checkov-action@v12.1347.0
         with:
           directory: ${{ env.WORKING_DIRECTORY }}
 
-  
   deploy-aws-infra-terraform:
-
-    
-    name: 'Terraform'
+    name: Deploy AWS Infrastructure with Terraform
     runs-on: ubuntu-latest
     environment: production
 
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
 
     steps:
-    # Checkout the repository to the GitHub Actions runner
-    
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: install
-      uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.1.7
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
 
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      run: terraform init
+      - name: Terraform Init
+        id: init
+        run: terraform init
 
-    # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      run: terraform fmt -check
+      - name: Terraform Format
+        id: format
+        run: terraform fmt -check
 
-    # Generates an execution plan for Terraform
-    - name: Terraform Plan
-      id: plan
-      if: github.event_name == 'pull_request' # 'push' # 
-      run: terraform plan -input=false
-      
-    - name: GitHub Script
-      id: comment
-      uses: actions/github-script@v7.0.1
-      if: github.event_name == 'pull_request' # 'push'
-      env:
-        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const output = `#### Terraform Format and Style 🖌\`${{ steps.format.outcome }}\`
-          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-          #### Terraform Validation 🤖${{ steps.validate.outputs.stdout }}
-          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-      
-          <details><summary>Show Plan</summary>
-          
-          \`\`\`${process.env.PLAN}\`\`\`
-          
-          </details>
-          
-          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
-            
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: output
-          })
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
 
-      # On push to "main", build or change infrastructure according to Terraform configuration files
-      # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform plan -input=false
+        continue-on-error: true
+
+      - name: Comment PR with Plan
+        id: comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            const output = `#### Terraform Format 🖌: \`${{ steps.format.outcome }}\`
+#### Terraform Init ⚙️: \`${{ steps.init.outcome }}\`
+#### Terraform Validate 🤖: \`${{ steps.validate.outcome }}\`
+#### Terraform Plan 📖: \`${{ steps.plan.outcome }}\`
+
+<details><summary>Show Plan</summary>
+
+\`\`\`${process.env.PLAN}\`\`\`
+
+</details>
+
+*Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
