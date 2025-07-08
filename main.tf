@@ -34,6 +34,17 @@ resource "aws_instance" "web" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
 
+  monitoring   = true         # Enables detailed monitoring
+  ebs_optimized = true        # Enable EBS optimization
+
+  metadata_options {
+    http_tokens = "required"  # Enforce IMDSv2 (disable IMDSv1)
+  }
+
+  root_block_device {
+    encrypted = true          # Enable encryption for root EBS volume
+  }
+
   tags = {
     Name = "HelloWorld"
   }
