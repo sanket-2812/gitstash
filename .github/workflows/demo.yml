@@ -1,0 +1,70 @@
+name: 'Terraform CI/CD'
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan-terraform-config:
+    runs-on: ubuntu-latest
+    name: Scan Terraform with Checkov
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Checkov GitHub Action
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12.1347.0
+        with:
+          directory: .
+
+  deploy-aws-infra-terraform:
+    name: Deploy AWS Infrastructure with Terraform
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESSKEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRETACCESSKEY }}
+        run: |
+          terraform plan -input=false \
+            -var "aws_access_key=${AWS_ACCESS_KEY_ID}" \
+            -var "aws_secret_key=${AWS_SECRET_ACCESS_KEY}"
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESSKEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRETACCESSKEY }}
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var "aws_access_key=${AWS_ACCESS_KEY_ID}" \
+            -var "aws_secret_key=${AWS_SECRET_ACCESS_KEY}"
